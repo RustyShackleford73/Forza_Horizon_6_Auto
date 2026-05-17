@@ -1,98 +1,66 @@
+"""
+Forza Horizon 6 自动化脚本
+依赖：paddlepaddle==2.6.2, paddleocr==2.7.0.3
+"""
+
 import os
-os.environ['FLAGS_use_mkldnn'] = '0'
-os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'   # 防止 MKL 冲突
-
-# 然后再导入 paddle 相关库
-import paddle
-try:
-    paddle.set_flags({'FLAGS_use_mkldnn': False})
-except:
-    pass
-
 import ctypes
-import logging
-import mss
-import numpy as np
-import pydirectinput
 import time
+import logging
+import numpy as np
+import mss
+import pydirectinput
 from ctypes import wintypes
 from paddleocr import PaddleOCR
 
-# 定义 Windows API 需要的坐标结构体
+# ----------------------------- 系统设置 -----------------------------
+# 关闭 PaddleOCR 调试日志
+logging.getLogger("ppocr").setLevel(logging.ERROR)
+
+# 定义 Windows API 结构体
 class POINT(ctypes.Structure):
     _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
-# ==========================================
-# 1. 配置区域 (左上角X, 左上角Y, 右下角X, 右下角Y)
-# ==========================================
-# 请用微信截图(Alt+A)等工具，记录下你要识别的文字所在框的对角坐标
+
+# ----------------------------- 区域坐标配置 -----------------------------
+# 格式：{区域名: (左上x, 左上y, 右下x, 右下y)}  ← 窗口内坐标
 REGION_COORDS = {
-    "a": (796, 965, 1263, 1015),  # 区域a: “设置路线以开始自动驾驶”
-    "b": (140, 539, 301, 585),  # 区域b: “加入赛事”
-    "c": (88, 661, 379, 700),  # 区域c: “开始竞赛赛事”
-    "d": (141, 991, 240, 1021),  # 区域d: “左下角继续”
-    "e": (1678, 931, 1860, 1037), # 区域e: 时速表位置 (右下角)
+    "a": (796, 965, 1263, 1015),   # 设置路线提示
+    "b": (140, 539, 301, 585),     # 加入赛事
+    "c": (88, 661, 379, 700),      # 开始竞赛赛事
+    "d": (141, 991, 240, 1021),    # 继续/选择
+    "e": (1678, 931, 1860, 1037),  # 时速表
 }
 
-# ==========================================
-# 2. 初始化 OCR 与辅助函数
-# ==========================================
-# 关闭角度检测提速，屏蔽调试日志
-logging.getLogger("ppocr").setLevel(logging.ERROR)
-# ocr = PaddleOCR(use_textline_orientation=False, lang="ch")
-ocr = PaddleOCR(use_textline_orientation=False, lang="ch", use_mkldnn=False)
-
-def coords_to_mss_rect(coords):
-    """将 (x1, y1, x2, y2) 转换为 mss 需要的字典格式"""
-    return {
-        "left": coords[0],
-        "top": coords[1],
-        "width": coords[2] - coords[0],
-        "height": coords[3] - coords[1]
-    }
+# ----------------------------- OCR 初始化 -----------------------------
+ocr = PaddleOCR(
+    use_angle_cls=False,            # 关闭方向分类，提速
+    lang="ch",
+    use_textline_orientation=False,
+    show_log=False
+)
 
 def get_text_from_region(sct, rect):
-    # img = np.array(sct.grab(rect))
-    # img_bgr = img[:, :, :3]
-    # result = ocr.ocr(img_bgr)
-    # text_content = ""
-    # if result:
-    #     # 新版返回格式可能是 list of dict，也可能是 list of list
-    #     # 尝试兼容两种常见格式
-    #     if isinstance(result, list) and len(result) > 0:
-    #         # 旧版格式: result[0] 是一个列表，每个元素是 [bbox, (text, confidence)]
-    #         if isinstance(result[0], list):
-    #             for line in result[0]:
-    #                 text_content += line[1][0]
-    #         # 新版格式: result 直接是列表，每个元素是 { 'text': ..., 'confidence': ... }
-    #         elif isinstance(result[0], dict):
-    #             for item in result:
-    #                 text_content += item.get('text', '')
-    #         else:
-    #             # 其他未知格式，尝试打印调试
-    #             print(f"Unknown result format: {type(result)}")
-    # return text_content
-    """使用 paddleocr 2.8.0 的 ocr() 方法识别文字"""
+    """从指定区域截图并识别文字"""
+    # 截取屏幕区域
     img = np.array(sct.grab(rect))
+    # MSS 截图为 BGRA，取前三个通道 (BGR)
     img_bgr = img[:, :, :3]
-    result = ocr.ocr(img_bgr)          # 改用 ocr() 方法
+
+    # OCR 识别，返回格式：[[[bbox, (text, confidence)], ...]]
+    result = ocr.ocr(img_bgr, cls=False)
+
     text_content = ""
-    if result and result[0]:           # result 是 [[...]]，第一项是该图的文字行
+    if result and result[0]:
         for line in result[0]:
-            # line 格式: [ [[x1,y1],[x2,y2],[x3,y3],[x4,y4]], ('文字', 置信度) ]
-            if len(line) >= 2:
-                text_info = line[1]
-                if isinstance(text_info, tuple):
-                    text_content += text_info[0]  # 取文字
-                elif isinstance(text_info, str):
-                    text_content += text_info
-                # 也可以添加分隔符，如 text_content += text_info[0] + " "
+            # line[1] 是 (文字, 置信度) 的元组
+            text, conf = line[1]
+            text_content += text
     return text_content.strip()
 
-# ==========================================
-# 3. 定义各个场景的执行动作
-# ==========================================
+# ----------------------------- 场景执行函数 -----------------------------
 def scenario_idle():
-    print(">>> 执行: 退出并重新设置路线")
+    """场景1：退出并重新设置路线"""
+    print("[场景1] 退出并重新设置路线")
     pydirectinput.press('esc')
     time.sleep(3)
     pydirectinput.press('s')
@@ -100,141 +68,131 @@ def scenario_idle():
     pydirectinput.press('enter')
     time.sleep(1.5)
     pydirectinput.press('enter')
-    time.sleep(1) # 缓冲
+    time.sleep(1)
 
 def scenario_join_game():
-    print(">>> 执行: 加入赛事")
+    """场景2：连续按回车加入赛事（最多60次）"""
+    print("[场景2] 加入赛事")
     for _ in range(60):
         pydirectinput.press('enter')
         time.sleep(3)
 
 def scenario_start_game():
-    print(">>> 执行: 开始竞赛赛事")
+    """场景3：开始竞赛赛事"""
+    print("[场景3] 开始竞赛")
     pydirectinput.press('enter')
     time.sleep(1)
 
 def scenario_game_finished():
-    print(">>> 执行: 完成比赛")
+    """场景4：比赛结束，按回车跳过结算"""
+    print("[场景4] 比赛结束")
     for _ in range(3):
         pydirectinput.press('enter')
         time.sleep(0.2)
 
-def scenario_enter_failed():
-    print(">>> 执行: 车辆卡死，长按 W 尝试脱困")
+def scenario_stuck():
+    """场景5：时速为零时尝试脱困"""
+    print("[场景5] 车辆卡死，长按W 3秒")
     pydirectinput.keyDown('w')
     time.sleep(3)
     pydirectinput.keyUp('w')
 
-# ==========================================
-# 4. 主循环逻辑 (状态机)
-# ==========================================
+# ----------------------------- 主循环 -----------------------------
 def main_loop():
-    print("✅ 脚本已启动...")
-    time.sleep(0.2)
-    
+    print("脚本 5 秒后开始运行，请确保游戏窗口标题为 'Forza Horizon 6'")
+    time.sleep(5)
 
-    
-    # 场景 5 和 6 需要用的状态变量
+    # 卡死相关计数器
     speed_zero_start_time = None
-    scenario_5_trigger_count = 0
+    stuck_trigger_count = 0
 
-    with mss.MSS() as sct:
+    with mss.mss() as sct:
         while True:
+            # ---- 0. 检查当前前台窗口是否为游戏 ----
             hwnd = ctypes.windll.user32.GetForegroundWindow()
             buf = ctypes.create_unicode_buffer(512)
             ctypes.windll.user32.GetWindowTextW(hwnd, buf, 512)
-            
-            # 如果当前窗口不是地平线6，则休眠1秒并跳过本次循环（相当于暂停运行）
             if buf.value != "Forza Horizon 6":
-                # print("游戏未在前台，脚本已暂停...") # 需要调试可以解除这行注释
                 time.sleep(1)
                 continue
 
-            # 获取当前游戏画面的左上角在屏幕上的绝对坐标
+            # ---- 1. 获取游戏窗口在屏幕上的绝对位置 ----
             pt = POINT(0, 0)
             ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(pt))
             base_x, base_y = pt.x, pt.y
-            
-            # 动态生成加上窗口偏移量后的 mss 截屏区域
+
+            # ---- 2. 根据窗口偏移动态生成截图区域 ----
             rects = {}
             for k, (x1, y1, x2, y2) in REGION_COORDS.items():
                 rects[k] = {
                     "left": base_x + x1,
                     "top": base_y + y1,
                     "width": x2 - x1,
-                    "height": y2 - y1
+                    "height": y2 - y1,
                 }
-            
-            # --- 读取所有关键区域的文字 ---
+
+            # ---- 3. 识别各个区域的文字 ----
             text_a = get_text_from_region(sct, rects["a"])
             text_b = get_text_from_region(sct, rects["b"])
             text_c = get_text_from_region(sct, rects["c"])
             text_d = get_text_from_region(sct, rects["d"])
-            text_e = get_text_from_region(sct, rects["e"])
+            text_e = get_text_from_region(sct, rects["e"])  # 时速
 
-            # 打印调试信息（正式使用时可注释掉）
-            # print(f"A:{text_a} | B:{text_b} | C:{text_c} | D:{text_d} | E(时速):{text_e}")
+            # 是否在赛事加入界面
+            has_join_event = "加入赛事" in text_b
 
-            has_join_event_in_b = "加入赛事" in text_b
-            
-            # --- 场景 2：检测到区域b显示“加入赛事” ---
-            if has_join_event_in_b:
+            # ---- 场景2：加入赛事 ----
+            if has_join_event:
                 scenario_join_game()
-                # 只要触发了菜单操作，重置卡死判定
-                speed_zero_start_time = None 
-                scenario_5_trigger_count = 0
-                continue # 完成动作后重新开始循环
-            
-            # --- 场景 1：区域a显示特定文字，且区域b不显示“加入赛事” ---
-            if "设置路线以开始自动驾驶" in text_a and not has_join_event_in_b:
+                speed_zero_start_time = None
+                stuck_trigger_count = 0
+                continue
+
+            # ---- 场景1：设置路线提示（且不在赛事界面） ----
+            if "设置路线以开始自动驾驶" in text_a and not has_join_event:
                 scenario_idle()
                 speed_zero_start_time = None
-                scenario_5_trigger_count = 0
+                stuck_trigger_count = 0
                 continue
-                
-            # --- 场景 3：检测到区域c显示“开始竞赛赛事” ---
+
+            # ---- 场景3：开始竞赛 ----
             if "开始竞赛赛事" in text_c:
                 scenario_start_game()
                 speed_zero_start_time = None
-                scenario_5_trigger_count = 0
+                stuck_trigger_count = 0
                 continue
 
-            # --- 场景 4：检测到区域d显示文字“观看回放影片” ---
+            # ---- 场景4：比赛结束（出现“继续”或“选择”） ----
             if "继续" in text_d or "选择" in text_d:
                 scenario_game_finished()
                 speed_zero_start_time = None
-                scenario_5_trigger_count = 0
+                stuck_trigger_count = 0
                 continue
 
-            # --- 场景 5 & 6：时速检测与防卡死逻辑 ---
-            # 清理时速文本，防止OCR误识别出字母 (比如把 0 识别成了 O)
-            speed_text = text_e.replace("O", "0").replace("o", "0").strip()
-            
-            # 如果没有处在上面的任何菜单中，我们开始检查时速
-            if speed_text == "0" or speed_text == "00" or speed_text == "000":
-                # 开始计时
+            # ---- 场景5 & 6：卡死检测 ----
+            # 清洗时速文字（常见OCR误读）
+            speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
+
+            if speed_str in ("0", "00", "000"):
                 if speed_zero_start_time is None:
                     speed_zero_start_time = time.time()
-                
-                # 如果时速为0持续了 20 秒
                 elif time.time() - speed_zero_start_time >= 20:
-                    scenario_enter_failed()
-                    scenario_5_trigger_count += 1
-                    speed_zero_start_time = None # 执行完后重新开始计20秒
-                    
-                    # --- 场景 6：如果场景5连续重复执行3次 ---
-                    if scenario_5_trigger_count >= 3:
-                        print(">>> 场景 6 触发: 连续3次长按W无效，执行场景 1 逻辑")
+                    scenario_stuck()
+                    stuck_trigger_count += 1
+                    speed_zero_start_time = None
+
+                    # 场景6：连续三次脱困无效 → 强制重新开始
+                    if stuck_trigger_count >= 3:
+                        print("[场景6] 连续卡死，执行场景1逻辑")
                         scenario_idle()
-                        scenario_5_trigger_count = 0 # 触发兜底后重置计数器
+                        stuck_trigger_count = 0
             else:
-                # 只要时速不为 0（车动起来了），立刻重置计时器
+                # 只要车在动，重置所有计时/计数
                 speed_zero_start_time = None
-                # 如果时速文本存在且不为0，说明车正常跑起来了，也重置连续卡死计数器
-                if speed_text: 
-                    scenario_5_trigger_count = 0
-            
-            # 短暂休息，防止 CPU 占用达到 100%
+                if speed_str:
+                    stuck_trigger_count = 0
+
+            # 控制循环频率，降低 CPU 占用
             time.sleep(0.5)
 
 if __name__ == "__main__":
