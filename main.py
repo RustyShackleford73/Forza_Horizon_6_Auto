@@ -154,7 +154,8 @@ def main_loop():
             text_d = get_text_from_region(sct, rects["d"])
             text_e = get_text_from_region(sct, rects["e"])  # 时速
             text_f = get_text_from_region(sct, rects["f"])
-
+            text_enter = get_text_from_region(sct, rects["enter"])
+            tprint(text_a, text_b, text_c, text_d, text_d, text_e, text_f, text_enter)
             # 是否在赛事加入界面
             has_join_event = "加入赛事" in text_b
             auto_pilot_mode = "自动驾驶" in text_f
@@ -211,7 +212,6 @@ def main_loop():
                         scenario_idle()
                         stuck_trigger_count = 0
             
-            text_enter = get_text_from_region(sct, rects["enter"])
             if "Enter" in text_enter:
                 pydirectinput.press('enter')
 
