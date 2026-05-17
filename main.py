@@ -245,29 +245,29 @@ def main_loop():
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
 
-            # 目的地不对
-            if stuck_trigger_count > 10:
-                start_auto_pilot()
-                auto_pilot_mode = 0
-                pydirectinput.keyDown('w')
-                left_or_right = stuck_trigger_count % 2
-                if left_or_right == 0:
-                    left_or_right = 'a'
-                else:
-                    left_or_right = 'd'
-                pydirectinput.keyDown(left_or_right)
-                for _ in range(10):
-                    text_c = get_text_from_region(sct, rects["c"])
-                    if "开始竞赛赛事" in text_c:
-                        pydirectinput.keyUp('w')
-                        pydirectinput.keyUp(left_or_right)
-                        start_auto_pilot()
-                        scenario_start_game()
-                        speed_zero_start_time = None
-                        stuck_trigger_count = 0
-                        continue
-                    time.sleep(0.5)
-                pydirectinput.press('w')
+            # # 目的地不对
+            # if stuck_trigger_count > 10:
+            #     start_auto_pilot()
+            #     auto_pilot_mode = 0
+            #     pydirectinput.keyDown('w')
+            #     left_or_right = stuck_trigger_count % 2
+            #     if left_or_right == 0:
+            #         left_or_right = 'a'
+            #     else:
+            #         left_or_right = 'd'
+            #     pydirectinput.keyDown(left_or_right)
+            #     for _ in range(10):
+            #         text_c = get_text_from_region(sct, rects["c"])
+            #         if "开始竞赛赛事" in text_c:
+            #             pydirectinput.keyUp('w')
+            #             pydirectinput.keyUp(left_or_right)
+            #             start_auto_pilot()
+            #             scenario_start_game()
+            #             speed_zero_start_time = None
+            #             stuck_trigger_count = 0
+            #             continue
+            #         time.sleep(0.5)
+            #     pydirectinput.press('w')
 
             if "继续" not in text_d and "选择" not in text_d and "设置路线以开始自动驾驶" not in text_a and not has_join_event and not auto_pilot_mode:
                 start_auto_pilot()
