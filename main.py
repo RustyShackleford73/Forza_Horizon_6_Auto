@@ -223,8 +223,10 @@ def main_loop():
                 stuck_trigger_count = 0
                 continue
 
-            # ---- 场景4：比赛结束（出现“继续”或“选择”） ----
+            # ---- 场景4：左下角出现选项 ----
             if any(kw in text_d for kw in ["继续", "选择", "领取奖励", "地图", "关闭"]):
+                if any(kw in text_d for kw in ["地图", "关闭"]):
+                       pydirectinput.press('esc')
                 scenario_game_finished()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
