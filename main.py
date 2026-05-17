@@ -234,7 +234,7 @@ def main_loop():
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
 
-            if "继续" not in text_d and "选择" not in text_d and "设置路线以开始自动驾驶" not in text_a and not has_join_event:
+            if "继续" not in text_d and "选择" not in text_d and "设置路线以开始自动驾驶" not in text_a and not has_join_event and not auto_pilot_mode:
                 start_auto_pilot()
                 tprint("端到端辅助驾驶开启")
             if speed_str in ("0", "00", "000"):
