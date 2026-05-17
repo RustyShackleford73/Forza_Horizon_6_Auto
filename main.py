@@ -112,8 +112,8 @@ def scenario_enter_failed():
 # 4. 主循环逻辑 (状态机)
 # ==========================================
 def main_loop():
-    print("✅ 脚本已启动，5秒后开始监控...")
-    time.sleep(5)
+    print("✅ 脚本已启动...")
+    time.sleep(0.2)
     
 
     
