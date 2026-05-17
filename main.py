@@ -234,6 +234,8 @@ def main_loop():
             if any(kw in text_d for kw in ["地图", "关闭"]):
                 tprint("缺德地图卡了")
                 pydirectinput.press('esc')
+                time.sleep(2)
+                pydirectinput.press('esc')
             
             # ---- 场景5 & 6：卡死检测 ----
             # 清洗时速文字（常见OCR误读）
