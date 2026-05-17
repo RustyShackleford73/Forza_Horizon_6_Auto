@@ -38,7 +38,7 @@ REGION_COORDS = {
     "money": (1727, 46, 1876, 72),
     "map": (555, 352, 727, 444)
 }
-
+last_money = None
 # ----------------------------- OCR 初始化 -----------------------------
 ocr = PaddleOCR(
     use_angle_cls=False,            # 关闭方向分类，提速
@@ -257,5 +257,4 @@ def main_loop():
             time.sleep(0.5)
 
 if __name__ == "__main__":
-    last_money = None
     main_loop()
