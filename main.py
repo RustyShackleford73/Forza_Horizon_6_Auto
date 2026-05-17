@@ -33,6 +33,9 @@ REGION_COORDS = {
     "enter": (83, 994, 135, 1015)
 }
 
+enter_scenarios = {"继续", "选择", "领取奖励"}
+
+
 # ----------------------------- OCR 初始化 -----------------------------
 ocr = PaddleOCR(
     use_angle_cls=False,            # 关闭方向分类，提速
@@ -185,7 +188,7 @@ def main_loop():
                 continue
 
             # ---- 场景4：比赛结束（出现“继续”或“选择”） ----
-            if "继续" in text_d or "选择" in text_d:
+            if text_d in enter_scenarios:
                 scenario_game_finished()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
