@@ -23,8 +23,9 @@ class POINT(ctypes.Structure):
 
 # ----------------------------- 区域坐标配置 -----------------------------
 # 格式：{区域名: (左上x, 左上y, 右下x, 右下y)}  ← 窗口内坐标
-enter_scenarios = {"继续", "选择", "领取奖励"}
 
+# enter_scenarios = {"继续", "选择", "领取奖励"}
+# ENTER_SCENARIOS = {"继续", "选择", "领取奖励"}
 REGION_COORDS = {
     "a": (796, 965, 1263, 1015),   # 设置路线提示
     "b": (140, 539, 301, 585),     # 加入赛事
@@ -187,7 +188,7 @@ def main_loop():
                 continue
 
             # ---- 场景4：比赛结束（出现“继续”或“选择”） ----
-            if text_d in enter_scenarios:
+            if text_d in {"继续", "选择", "领取奖励"}:
                 scenario_game_finished()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
