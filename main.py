@@ -117,7 +117,7 @@ def scenario_stuck():
 def start_auto_pilot():
     pydirectinput.press('c')
     time.sleep(0.5)
-    pydirectinput.press('3')
+    pydirectinput.press('2')
 
 def log_money(amount_str, log_file="money.txt"):
     """将金额追加记录到文件，格式：时间 金额（一行一条）"""
