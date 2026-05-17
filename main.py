@@ -1,5 +1,13 @@
 import os
 os.environ['FLAGS_use_mkldnn'] = '0'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'   # 防止 MKL 冲突
+
+# 然后再导入 paddle 相关库
+import paddle
+try:
+    paddle.set_flags({'FLAGS_use_mkldnn': False})
+except:
+    pass
 
 import ctypes
 import logging
@@ -44,7 +52,7 @@ def coords_to_mss_rect(coords):
 def get_text_from_region(sct, rect):
     img = np.array(sct.grab(rect))
     img_bgr = img[:, :, :3]
-    result = ocr.ocr(img_bgr)
+    result = ocr.predict(img_bgr)
     text_content = ""
     if result:
         # 新版返回格式可能是 list of dict，也可能是 list of list
