@@ -222,16 +222,17 @@ def main_loop():
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
                 continue
-
+            
             # ---- 场景4：左下角出现选项 ----
-            if any(kw in text_d for kw in ["继续", "选择", "领取奖励", "地图", "关闭"]):
-                if any(kw in text_d for kw in ["地图", "关闭"]):
-                       pydirectinput.press('esc')
+            if any(kw in text_d for kw in ["继续", "选择", "领取奖励"]):
                 scenario_game_finished()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
                 continue
 
+            if any(kw in text_d for kw in ["地图", "关闭"]):
+                pydirectinput.press('esc')
+                
             # ---- 场景5 & 6：卡死检测 ----
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
