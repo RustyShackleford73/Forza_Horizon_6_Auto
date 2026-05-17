@@ -130,7 +130,7 @@ def extract_money(text):
     去掉一切非数字字符，若结果不为空且全为数字，则返回 (True, 数字字符串)。
     """
     if "CR" not in text:
-        return ""
+        return False, ""
     digits = re.sub(r'\D', '', text)   # 只保留 0-9
     if digits and digits.isdigit():
         return True, digits
