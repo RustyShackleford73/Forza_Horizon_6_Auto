@@ -10,6 +10,7 @@ import logging
 import numpy as np
 import mss
 import pydirectinput
+import re
 from ctypes import wintypes
 from paddleocr import PaddleOCR
 
@@ -117,6 +118,24 @@ def start_auto_pilot():
     time.sleep(0.5)
     pydirectinput.press('3')
 
+def log_money(amount_str, log_file="money.txt"):
+    """将金额追加记录到文件，格式：时间 金额（一行一条）"""
+    now = time.strftime("%Y-%m-%d %H:%M:%S")
+    with open(log_file, "a", encoding="utf-8") as f:
+        f.write(f"{now} {amount_str}\n")
+
+def extract_money(text):
+    """
+    从 OCR 文字中提取金钱数字（纯整数，无小数）。
+    去掉一切非数字字符，若结果不为空且全为数字，则返回 (True, 数字字符串)。
+    """
+    if "CR" not in text:
+        return ""
+    digits = re.sub(r'\D', '', text)   # 只保留 0-9
+    if digits and digits.isdigit():
+        return True, digits
+    return False, ""
+
 # ----------------------------- 主循环 -----------------------------
 def main_loop():
     tprint("端到端辅助驾驶启动")
@@ -161,10 +180,19 @@ def main_loop():
             text_enter = get_text_from_region(sct, rects["enter"])
             text_money = get_text_from_region(sct, rects["money"])
             tprint([text_a, text_b, text_c, text_d, text_d, text_e, text_f, text_enter, text_money])
-            exit()
+            # time.sleep(1)
+            # continue
             # 是否在赛事加入界面
             has_join_event = "加入赛事" in text_b
             auto_pilot_mode = "自动驾驶" in text_f
+            
+            is_money, money_str = extract_money(text_money)
+            if is_money and money_str != last_money:
+                last_money = money_str
+                log_money(money_str)
+                tprint(f"💰 CR: {money_str}")
+
+
 
             # ---- 场景2：加入赛事 ----
             if has_join_event:
@@ -218,13 +246,11 @@ def main_loop():
                         scenario_idle()
                         stuck_trigger_count = 0
             
-            # is_money, money_str = extract_money(text_f)
-            # if is_money:
-                # pydirectinput.press('enter')
 
 
             # 控制循环频率，降低 CPU 占用
             time.sleep(0.5)
 
 if __name__ == "__main__":
+    last_money = None
     main_loop()
