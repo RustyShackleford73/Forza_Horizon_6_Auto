@@ -1,2 +1,5 @@
 mss
 numpy
+pydirectinput
+paddleocr
+paddlepaddle
