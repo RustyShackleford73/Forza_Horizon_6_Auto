@@ -1,4 +1,5 @@
 import ctypes
+import logging
 import mss
 import numpy as np
 import pydirectinput
@@ -19,14 +20,14 @@ REGION_COORDS = {
     "c": (88, 661, 379, 700),  # 区域c: “开始竞赛赛事”
     "d": (141, 991, 240, 1021),  # 区域d: “左下角继续”
     "e": (1678, 931, 1860, 1037), # 区域e: 时速表位置 (右下角)
-    "f": (141, 991, 240, 1021) # 左下角继续
 }
 
 # ==========================================
 # 2. 初始化 OCR 与辅助函数
 # ==========================================
 # 关闭角度检测提速，屏蔽调试日志
-ocr = PaddleOCR(use_angle_cls=False, lang="ch", show_log=False)
+logging.getLogger("ppocr").setLevel(logging.ERROR)
+ocr = PaddleOCR(use_textline_orientation=False, lang="ch")
 
 def coords_to_mss_rect(coords):
     """将 (x1, y1, x2, y2) 转换为 mss 需要的字典格式"""
