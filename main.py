@@ -3,18 +3,23 @@ import mss
 import numpy as np
 import pydirectinput
 import time
+from ctypes import wintypes
 from paddleocr import PaddleOCR
 
+# 定义 Windows API 需要的坐标结构体
+class POINT(ctypes.Structure):
+    _fields_ = [("x", ctypes.c_long), ("y", ctypes.c_long)]
 # ==========================================
 # 1. 配置区域 (左上角X, 左上角Y, 右下角X, 右下角Y)
 # ==========================================
 # 请用微信截图(Alt+A)等工具，记录下你要识别的文字所在框的对角坐标
 REGION_COORDS = {
-    "a": (100, 100, 400, 200),  # 区域a: “设置路线以开始自动驾驶”
-    "b": (500, 100, 800, 200),  # 区域b: “加入赛事”
-    "c": (100, 800, 400, 900),  # 区域c: “开始竞赛赛事”
-    "d": (500, 800, 800, 900),  # 区域d: “观看回放影片”
-    "e": (1600, 900, 1800, 1050) # 区域e: 时速表位置 (右下角)
+    "a": (103, 996, 295, 995),  # 区域a: “设置路线以开始自动驾驶”
+    "b": (140, 539, 301, 585),  # 区域b: “加入赛事”
+    "c": (88, 661, 379, 700),  # 区域c: “开始竞赛赛事”
+    "d": (141, 991, 240, 1021),  # 区域d: “左下角继续”
+    "e": (1678, 931, 1860, 1037), # 区域e: 时速表位置 (右下角)
+    "f": (141, 991, 240, 1021) # 左下角继续
 }
 
 # ==========================================
@@ -47,8 +52,8 @@ def get_text_from_region(sct, rect):
 # ==========================================
 # 3. 定义各个场景的执行动作
 # ==========================================
-def action_scenario_1():
-    print(">>> 执行动作 1: 退出并重新设置路线")
+def scenario_idle():
+    print(">>> 执行: 退出并重新设置路线")
     pydirectinput.press('esc')
     time.sleep(3)
     pydirectinput.press('s')
@@ -58,26 +63,25 @@ def action_scenario_1():
     pydirectinput.press('enter')
     time.sleep(1) # 缓冲
 
-def action_scenario_2():
-    print(">>> 执行动作 2: 加入赛事")
-    for _ in range(4):
+def scenario_join_game():
+    print(">>> 执行: 加入赛事")
+    for _ in range(60):
         pydirectinput.press('enter')
-        time.sleep(4)
+        time.sleep(3)
 
-def action_scenario_3():
-    print(">>> 执行动作 3: 开始竞赛赛事")
+def scenario_start_game():
+    print(">>> 执行: 开始竞赛赛事")
     pydirectinput.press('enter')
     time.sleep(1)
 
-def action_scenario_4():
-    print(">>> 执行动作 4: 观看回放影片")
-    pydirectinput.press('enter')
-    time.sleep(10)
-    pydirectinput.press('enter')
-    time.sleep(1)
+def scenario_game_finished():
+    print(">>> 执行: 完成比赛")
+    for _ in range(3):
+        pydirectinput.press('enter')
+        time.sleep(0.2)
 
-def action_scenario_5():
-    print(">>> 执行动作 5: 车辆卡死，长按 W 尝试脱困")
+def scenario_enter_failed():
+    print(">>> 执行: 车辆卡死，长按 W 尝试脱困")
     pydirectinput.keyDown('w')
     time.sleep(3)
     pydirectinput.keyUp('w')
@@ -86,11 +90,10 @@ def action_scenario_5():
 # 4. 主循环逻辑 (状态机)
 # ==========================================
 def main_loop():
-    print("✅ 脚本已启动，3秒后开始监控...")
-    time.sleep(3)
+    print("✅ 脚本已启动，5秒后开始监控...")
+    time.sleep(5)
     
-    # 提前转换好所有的 mss 截屏区域
-    rects = {k: coords_to_mss_rect(v) for k, v in REGION_COORDS.items()}
+
     
     # 场景 5 和 6 需要用的状态变量
     speed_zero_start_time = None
@@ -107,6 +110,22 @@ def main_loop():
                 # print("游戏未在前台，脚本已暂停...") # 需要调试可以解除这行注释
                 time.sleep(1)
                 continue
+
+            # 获取当前游戏画面的左上角在屏幕上的绝对坐标
+            pt = POINT(0, 0)
+            ctypes.windll.user32.ClientToScreen(hwnd, ctypes.byref(pt))
+            base_x, base_y = pt.x, pt.y
+            
+            # 动态生成加上窗口偏移量后的 mss 截屏区域
+            rects = {}
+            for k, (x1, y1, x2, y2) in REGION_COORDS.items():
+                rects[k] = {
+                    "left": base_x + x1,
+                    "top": base_y + y1,
+                    "width": x2 - x1,
+                    "height": y2 - y1
+                }
+            
             # --- 读取所有关键区域的文字 ---
             text_a = get_text_from_region(sct, rects["a"])
             text_b = get_text_from_region(sct, rects["b"])
@@ -121,7 +140,7 @@ def main_loop():
             
             # --- 场景 2：检测到区域b显示“加入赛事” ---
             if has_join_event_in_b:
-                action_scenario_2()
+                scenario_join_game()
                 # 只要触发了菜单操作，重置卡死判定
                 speed_zero_start_time = None 
                 scenario_5_trigger_count = 0
@@ -129,21 +148,21 @@ def main_loop():
             
             # --- 场景 1：区域a显示特定文字，且区域b不显示“加入赛事” ---
             if "设置路线以开始自动驾驶" in text_a and not has_join_event_in_b:
-                action_scenario_1()
+                scenario_idle()
                 speed_zero_start_time = None
                 scenario_5_trigger_count = 0
                 continue
                 
             # --- 场景 3：检测到区域c显示“开始竞赛赛事” ---
             if "开始竞赛赛事" in text_c:
-                action_scenario_3()
+                scenario_start_game()
                 speed_zero_start_time = None
                 scenario_5_trigger_count = 0
                 continue
 
             # --- 场景 4：检测到区域d显示文字“观看回放影片” ---
-            if "观看回放影片" in text_d:
-                action_scenario_4()
+            if "继续" in text_d or "选择" in text_d:
+                scenario_game_finished()
                 speed_zero_start_time = None
                 scenario_5_trigger_count = 0
                 continue
@@ -160,14 +179,14 @@ def main_loop():
                 
                 # 如果时速为0持续了 20 秒
                 elif time.time() - speed_zero_start_time >= 20:
-                    action_scenario_5()
+                    scenario_enter_failed()
                     scenario_5_trigger_count += 1
                     speed_zero_start_time = None # 执行完后重新开始计20秒
                     
                     # --- 场景 6：如果场景5连续重复执行3次 ---
                     if scenario_5_trigger_count >= 3:
                         print(">>> 场景 6 触发: 连续3次长按W无效，执行场景 1 逻辑")
-                        action_scenario_1()
+                        scenario_idle()
                         scenario_5_trigger_count = 0 # 触发兜底后重置计数器
             else:
                 # 只要时速不为 0（车动起来了），立刻重置计时器
