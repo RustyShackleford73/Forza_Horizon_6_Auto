@@ -231,7 +231,10 @@ def main_loop():
                 stuck_trigger_count = 0
                 continue
             
-            if any(kw in text_d for kw in ["地图", "关闭"]):
+            if "下一个" in text_d:
+                for _ in range(5):
+                    pydirectinput.press('esc')
+            if any(kw in text_d for kw in ["地图", "关闭", "返回"]):
                 tprint("缺德地图卡了")
                 pydirectinput.press('esc')
                 time.sleep(2)
