@@ -61,9 +61,9 @@ def get_text_from_region(sct, rect):
 def scenario_idle():
     """场景1：退出并重新设置路线"""
     print("[场景1] 退出并重新设置路线")
-    pydirectinput.press('esc')
-    time.sleep(3)
-    pydirectinput.press('s')
+    pydirectinput.press('c')
+    time.sleep(0.5)
+    pydirectinput.press('3')
     time.sleep(1)
     pydirectinput.press('enter')
     time.sleep(1.5)
