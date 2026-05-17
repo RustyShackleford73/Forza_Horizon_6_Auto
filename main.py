@@ -39,15 +39,26 @@ def coords_to_mss_rect(coords):
     }
 
 def get_text_from_region(sct, rect):
-    """从指定区域截图并提取所有文字拼成一个字符串"""
     img = np.array(sct.grab(rect))
-    img_bgr = img[:, :, :3]  # 去掉 alpha 通道
-    result = ocr.ocr(img_bgr, cls=False)
+    img_bgr = img[:, :, :3]
+    result = ocr.predict(img_bgr)
     
     text_content = ""
-    if result and result[0]:
-        for line in result[0]:
-            text_content += line[1][0]
+    if result:
+        # 新版返回格式可能是 list of dict，也可能是 list of list
+        # 尝试兼容两种常见格式
+        if isinstance(result, list) and len(result) > 0:
+            # 旧版格式: result[0] 是一个列表，每个元素是 [bbox, (text, confidence)]
+            if isinstance(result[0], list):
+                for line in result[0]:
+                    text_content += line[1][0]
+            # 新版格式: result 直接是列表，每个元素是 { 'text': ..., 'confidence': ... }
+            elif isinstance(result[0], dict):
+                for item in result:
+                    text_content += item.get('text', '')
+            else:
+                # 其他未知格式，尝试打印调试
+                print(f"Unknown result format: {type(result)}")
     return text_content
 
 # ==========================================
@@ -100,7 +111,7 @@ def main_loop():
     speed_zero_start_time = None
     scenario_5_trigger_count = 0
 
-    with mss.mss() as sct:
+    with mss.MSS() as sct:
         while True:
             hwnd = ctypes.windll.user32.GetForegroundWindow()
             buf = ctypes.create_unicode_buffer(512)
