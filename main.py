@@ -115,6 +115,7 @@ def scenario_stuck():
     pydirectinput.keyUp('w')
 
 def start_auto_pilot():
+    tprint("端到端辅助驾驶启动")
     pydirectinput.press('c')
     time.sleep(0.5)
     pydirectinput.press('2')
@@ -229,10 +230,11 @@ def main_loop():
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
                 continue
-
+            
             if any(kw in text_d for kw in ["地图", "关闭"]):
+                tprint("缺德地图卡了")
                 pydirectinput.press('esc')
-                
+            
             # ---- 场景5 & 6：卡死检测 ----
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
