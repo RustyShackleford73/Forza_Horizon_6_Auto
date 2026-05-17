@@ -1,5 +1,8 @@
+paddlepaddle==2.6.2
+paddleocr==2.7.0.3
 mss
-numpy
 pydirectinput
-paddleocr
-paddlepaddle
+numpy
+opencv-python-headless
+pyclipper
+shapely
