@@ -38,7 +38,7 @@ REGION_COORDS = {
     "money": (1727, 46, 1876, 72),
     "map": (555, 352, 727, 444)
 }
-last_money = None
+
 # ----------------------------- OCR 初始化 -----------------------------
 ocr = PaddleOCR(
     use_angle_cls=False,            # 关闭方向分类，提速
@@ -145,7 +145,7 @@ def main_loop():
     # 卡死相关计数器
     speed_zero_start_time = None
     stuck_trigger_count = 0
-
+    last_money = None
     with mss.mss() as sct:
         while True:
             # ---- 0. 检查当前前台窗口是否为游戏 ----
