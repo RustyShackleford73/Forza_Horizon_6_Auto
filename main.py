@@ -38,7 +38,8 @@ REGION_COORDS = {
 # ==========================================
 # 关闭角度检测提速，屏蔽调试日志
 logging.getLogger("ppocr").setLevel(logging.ERROR)
-ocr = PaddleOCR(use_textline_orientation=False, lang="ch")
+# ocr = PaddleOCR(use_textline_orientation=False, lang="ch")
+ocr = PaddleOCR(use_textline_orientation=False, lang="ch", use_mkldnn=False)
 
 def coords_to_mss_rect(coords):
     """将 (x1, y1, x2, y2) 转换为 mss 需要的字典格式"""
@@ -50,26 +51,42 @@ def coords_to_mss_rect(coords):
     }
 
 def get_text_from_region(sct, rect):
+    # img = np.array(sct.grab(rect))
+    # img_bgr = img[:, :, :3]
+    # result = ocr.ocr(img_bgr)
+    # text_content = ""
+    # if result:
+    #     # 新版返回格式可能是 list of dict，也可能是 list of list
+    #     # 尝试兼容两种常见格式
+    #     if isinstance(result, list) and len(result) > 0:
+    #         # 旧版格式: result[0] 是一个列表，每个元素是 [bbox, (text, confidence)]
+    #         if isinstance(result[0], list):
+    #             for line in result[0]:
+    #                 text_content += line[1][0]
+    #         # 新版格式: result 直接是列表，每个元素是 { 'text': ..., 'confidence': ... }
+    #         elif isinstance(result[0], dict):
+    #             for item in result:
+    #                 text_content += item.get('text', '')
+    #         else:
+    #             # 其他未知格式，尝试打印调试
+    #             print(f"Unknown result format: {type(result)}")
+    # return text_content
+    """使用 paddleocr 2.8.0 的 ocr() 方法识别文字"""
     img = np.array(sct.grab(rect))
     img_bgr = img[:, :, :3]
-    result = ocr.ocr(img_bgr)
+    result = ocr.ocr(img_bgr)          # 改用 ocr() 方法
     text_content = ""
-    if result:
-        # 新版返回格式可能是 list of dict，也可能是 list of list
-        # 尝试兼容两种常见格式
-        if isinstance(result, list) and len(result) > 0:
-            # 旧版格式: result[0] 是一个列表，每个元素是 [bbox, (text, confidence)]
-            if isinstance(result[0], list):
-                for line in result[0]:
-                    text_content += line[1][0]
-            # 新版格式: result 直接是列表，每个元素是 { 'text': ..., 'confidence': ... }
-            elif isinstance(result[0], dict):
-                for item in result:
-                    text_content += item.get('text', '')
-            else:
-                # 其他未知格式，尝试打印调试
-                print(f"Unknown result format: {type(result)}")
-    return text_content
+    if result and result[0]:           # result 是 [[...]]，第一项是该图的文字行
+        for line in result[0]:
+            # line 格式: [ [[x1,y1],[x2,y2],[x3,y3],[x4,y4]], ('文字', 置信度) ]
+            if len(line) >= 2:
+                text_info = line[1]
+                if isinstance(text_info, tuple):
+                    text_content += text_info[0]  # 取文字
+                elif isinstance(text_info, str):
+                    text_content += text_info
+                # 也可以添加分隔符，如 text_content += text_info[0] + " "
+    return text_content.strip()
 
 # ==========================================
 # 3. 定义各个场景的执行动作
