@@ -29,6 +29,7 @@ REGION_COORDS = {
     "c": (88, 661, 379, 700),      # 开始竞赛赛事
     "d": (141, 991, 240, 1021),    # 继续/选择
     "e": (1678, 931, 1860, 1037),  # 时速表
+    "f": (101, 965, 292, 995)      # 自动驾驶状态
 }
 
 # ----------------------------- OCR 初始化 -----------------------------
@@ -38,6 +39,11 @@ ocr = PaddleOCR(
     use_textline_orientation=False,
     show_log=False
 )
+
+def tprint(msg):
+    """打印带当前时间戳的消息"""
+    now = time.strftime("%H:%M:%S")  # 只显示时分秒，若需要日期可改为 "%Y-%m-%d %H:%M:%S"
+    print(f"[{now}] {msg}")
 
 def get_text_from_region(sct, rect):
     """从指定区域截图并识别文字"""
@@ -60,7 +66,7 @@ def get_text_from_region(sct, rect):
 # ----------------------------- 场景执行函数 -----------------------------
 def scenario_idle():
     """场景1：退出并重新设置路线"""
-    print("[场景1] 退出并重新设置路线")
+    tprint("安娜同学，带我去下一场比赛")
     pydirectinput.press('c')
     time.sleep(0.5)
     pydirectinput.press('3')
@@ -71,35 +77,44 @@ def scenario_idle():
     time.sleep(1)
 
 def scenario_join_game():
-    """场景2：连续按回车加入赛事（最多60次）"""
-    print("[场景2] 加入赛事")
+    """连续按回车加入赛事（最多60次）"""
+    tprint("加入赛事")
     for _ in range(60):
         pydirectinput.press('enter')
         time.sleep(3)
 
 def scenario_start_game():
     """场景3：开始竞赛赛事"""
-    print("[场景3] 开始竞赛")
+    tprint("开始竞赛")
     pydirectinput.press('enter')
     time.sleep(1)
 
 def scenario_game_finished():
-    """场景4：比赛结束，按回车跳过结算"""
-    print("[场景4] 比赛结束")
+    """比赛结束，按回车跳过结算"""
+    tprint("比赛结束")
     for _ in range(3):
         pydirectinput.press('enter')
         time.sleep(0.2)
 
 def scenario_stuck():
     """场景5：时速为零时尝试脱困"""
-    print("[场景5] 车辆卡死，长按W 3秒")
+    tprint("[场景5] 车辆卡死，长按W 3秒")
+    pydirectinput.press('c')
+    time.sleep(0.5)
+    pydirectinput.press('2')
+    time.sleep(1)
     pydirectinput.keyDown('w')
     time.sleep(3)
     pydirectinput.keyUp('w')
 
+def start_auto_pilot():
+    pydirectinput.press('c')
+    time.sleep(0.5)
+    pydirectinput.press('3')
+
 # ----------------------------- 主循环 -----------------------------
 def main_loop():
-    print("脚本 5 秒后开始运行，请确保游戏窗口标题为 'Forza Horizon 6'")
+    tprint("脚本 5 秒后开始运行，请确保游戏窗口标题为 'Forza Horizon 6'")
     time.sleep(5)
 
     # 卡死相关计数器
@@ -137,13 +152,17 @@ def main_loop():
             text_c = get_text_from_region(sct, rects["c"])
             text_d = get_text_from_region(sct, rects["d"])
             text_e = get_text_from_region(sct, rects["e"])  # 时速
-
+            text_f = get_text_from_region(sct, rects["f"])
             # 是否在赛事加入界面
             has_join_event = "加入赛事" in text_b
+            auto_pilot_mode = "自动驾驶" in text_f
 
             # ---- 场景2：加入赛事 ----
             if has_join_event:
                 scenario_join_game()
+                # 检查自动驾驶开启状态
+                if not auto_pilot_mode:
+                    start_auto_pilot()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
                 continue
@@ -173,6 +192,9 @@ def main_loop():
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
 
+            if "继续" not in text_d and "选择"  not in text_d and "设置路线以开始自动驾驶" in text_a and not has_join_event:
+                start_auto_pilot()
+                tprint("端到端辅助驾驶开启")
             if speed_str in ("0", "00", "000"):
                 if speed_zero_start_time is None:
                     speed_zero_start_time = time.time()
@@ -183,14 +205,10 @@ def main_loop():
 
                     # 场景6：连续三次脱困无效 → 强制重新开始
                     if stuck_trigger_count >= 3:
-                        print("[场景6] 连续卡死，执行场景1逻辑")
+                        tprint("[场景6] 连续卡死，执行场景1逻辑")
                         scenario_idle()
                         stuck_trigger_count = 0
-            else:
-                # 只要车在动，重置所有计时/计数
-                speed_zero_start_time = None
-                if speed_str:
-                    stuck_trigger_count = 0
+
 
             # 控制循环频率，降低 CPU 占用
             time.sleep(0.5)
