@@ -29,7 +29,8 @@ REGION_COORDS = {
     "c": (88, 661, 379, 700),      # 开始竞赛赛事
     "d": (141, 991, 240, 1021),    # 继续/选择
     "e": (1678, 931, 1860, 1037),  # 时速表
-    "f": (101, 965, 292, 995)      # 自动驾驶状态
+    "f": (101, 965, 292, 995),      # 自动驾驶状态
+    "enter": (83, 997,135, 1014)
 }
 
 # ----------------------------- OCR 初始化 -----------------------------
@@ -66,7 +67,7 @@ def get_text_from_region(sct, rect):
 # ----------------------------- 场景执行函数 -----------------------------
 def scenario_idle():
     """场景1：退出并重新设置路线"""
-    tprint("安娜同学，带我去下一场比赛")
+    tprint("安娜，去下一场比赛")
     pydirectinput.press('c')
     time.sleep(0.5)
     pydirectinput.press('3')
@@ -98,7 +99,7 @@ def scenario_game_finished():
 
 def scenario_stuck():
     """场景5：时速为零时尝试脱困"""
-    tprint("[场景5] 车辆卡死，长按W 3秒")
+    tprint("目的地到达，请接管")
     pydirectinput.press('c')
     time.sleep(0.5)
     pydirectinput.press('2')
@@ -114,7 +115,7 @@ def start_auto_pilot():
 
 # ----------------------------- 主循环 -----------------------------
 def main_loop():
-    tprint("脚本 5 秒后开始运行，请确保游戏窗口标题为 'Forza Horizon 6'")
+    tprint("端到端辅助驾驶启动")
     time.sleep(5)
 
     # 卡死相关计数器
@@ -153,6 +154,7 @@ def main_loop():
             text_d = get_text_from_region(sct, rects["d"])
             text_e = get_text_from_region(sct, rects["e"])  # 时速
             text_f = get_text_from_region(sct, rects["f"])
+
             # 是否在赛事加入界面
             has_join_event = "加入赛事" in text_b
             auto_pilot_mode = "自动驾驶" in text_f
@@ -208,6 +210,10 @@ def main_loop():
                         tprint("[场景6] 连续卡死，执行场景1逻辑")
                         scenario_idle()
                         stuck_trigger_count = 0
+            
+            text_enter = get_text_from_region(sct, rects["enter"])
+            if "Enter" in text_enter:
+                pydirectinput.press('enter')
 
 
             # 控制循环频率，降低 CPU 占用
