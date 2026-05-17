@@ -85,7 +85,7 @@ def scenario_idle():
 def scenario_join_game():
     """连续按回车加入赛事（最多60次）"""
     tprint("加入赛事")
-    for _ in range(60):
+    for _ in range(40):
         pydirectinput.press('enter')
         time.sleep(3)
 
@@ -229,7 +229,7 @@ def main_loop():
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
 
-            if "继续" not in text_d and "选择"  not in text_d and "设置路线以开始自动驾驶" in text_a and not has_join_event:
+            if "继续" not in text_d and "选择" not in text_d and "设置路线以开始自动驾驶" not in text_a and not has_join_event:
                 start_auto_pilot()
                 tprint("端到端辅助驾驶开启")
             if speed_str in ("0", "00", "000"):
