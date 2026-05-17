@@ -160,7 +160,8 @@ def main_loop():
             text_f = get_text_from_region(sct, rects["f"])
             text_enter = get_text_from_region(sct, rects["enter"])
             text_money = get_text_from_region(sct, rects["money"])
-            tprint([text_a, text_b, text_c, text_d, text_d, text_e, text_f, text_enter])
+            tprint([text_a, text_b, text_c, text_d, text_d, text_e, text_f, text_enter, text_money])
+            exit()
             # 是否在赛事加入界面
             has_join_event = "加入赛事" in text_b
             auto_pilot_mode = "自动驾驶" in text_f
@@ -220,7 +221,6 @@ def main_loop():
             # is_money, money_str = extract_money(text_f)
             # if is_money:
                 # pydirectinput.press('enter')
-            tprint(['money: ', text_money])
 
 
             # 控制循环频率，降低 CPU 占用
