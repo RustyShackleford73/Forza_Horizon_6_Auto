@@ -258,6 +258,7 @@ def main_loop():
                     left_or_right = 'd'
                 pydirectinput.keyDown(left_or_right)
                 for _ in range(10):
+                    tprint('卡住了')
                     text_c = get_text_from_region(sct, rects["c"])
                     if "开始竞赛赛事" in text_c:
                         pydirectinput.keyUp('w')
