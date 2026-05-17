@@ -35,7 +35,8 @@ REGION_COORDS = {
     "e": (1678, 931, 1860, 1037),  # 时速表
     "f": (101, 965, 292, 995),      # 自动驾驶状态
     "enter": (83, 994, 135, 1015),
-    "money": (1727, 46, 1876, 72)
+    "money": (1727, 46, 1876, 72),
+    "map": (555, 352, 727, 444)
 }
 
 # ----------------------------- OCR 初始化 -----------------------------
@@ -179,6 +180,7 @@ def main_loop():
             text_f = get_text_from_region(sct, rects["f"])
             text_enter = get_text_from_region(sct, rects["enter"])
             text_money = get_text_from_region(sct, rects["money"])
+            # text_map = get_text_from_region(sct, rects['map'])
             tprint([text_a, text_b, text_c, text_d, text_d, text_e, text_f, text_enter, text_money])
             # time.sleep(1)
             # continue
@@ -203,6 +205,9 @@ def main_loop():
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
                 continue
+            
+            # if "地图" in text_map:
+            #     pydirectinput.press('esc')
 
             # ---- 场景1：设置路线提示（且不在赛事界面） ----
             if "设置路线以开始自动驾驶" in text_a and not has_join_event:
