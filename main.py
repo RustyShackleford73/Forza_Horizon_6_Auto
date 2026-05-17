@@ -1,3 +1,6 @@
+import os
+os.environ['FLAGS_use_mkldnn'] = '0'
+
 import ctypes
 import logging
 import mss
