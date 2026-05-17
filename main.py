@@ -33,7 +33,8 @@ REGION_COORDS = {
     "d": (141, 991, 240, 1021),    # 继续/选择
     "e": (1678, 931, 1860, 1037),  # 时速表
     "f": (101, 965, 292, 995),      # 自动驾驶状态
-    "enter": (83, 994, 135, 1015)
+    "enter": (83, 994, 135, 1015),
+    "money": (1727, 46, 1876, 72)
 }
 
 # ----------------------------- OCR 初始化 -----------------------------
@@ -158,6 +159,7 @@ def main_loop():
             text_e = get_text_from_region(sct, rects["e"])  # 时速
             text_f = get_text_from_region(sct, rects["f"])
             text_enter = get_text_from_region(sct, rects["enter"])
+            text_money = get_text_from_region(sct, rects["money"])
             tprint([text_a, text_b, text_c, text_d, text_d, text_e, text_f, text_enter])
             # 是否在赛事加入界面
             has_join_event = "加入赛事" in text_b
@@ -215,8 +217,10 @@ def main_loop():
                         scenario_idle()
                         stuck_trigger_count = 0
             
-            if "Enter" in text_enter:
-                pydirectinput.press('enter')
+            # is_money, money_str = extract_money(text_f)
+            # if is_money:
+                # pydirectinput.press('enter')
+            tprint(['money: ', text_money])
 
 
             # 控制循环频率，降低 CPU 占用
