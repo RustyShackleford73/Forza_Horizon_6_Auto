@@ -32,7 +32,7 @@ REGION_COORDS = {
     "b": (140, 539, 301, 585),     # 加入赛事
     "c": (88, 661, 379, 700),      # 开始竞赛赛事
     "d": (121, 991, 652, 1021),    # 继续/选择
-    "e": (1678, 931, 1860, 1037),  # 时速表
+    "e": (1698, 868, 1741, 914),  # 时速表
     "f": (101, 965, 292, 995),      # 自动驾驶状态
     "enter": (83, 994, 135, 1015),
     "money": (1727, 46, 1876, 72),
@@ -147,6 +147,7 @@ def main_loop():
     speed_zero_start_time = None
     stuck_trigger_count = 0
     last_money = None
+    running = 0
     with mss.mss() as sct:
         while True:
             # ---- 0. 检查当前前台窗口是否为游戏 ----
@@ -214,7 +215,7 @@ def main_loop():
             if "设置路线以开始自动驾驶" in text_a and not has_join_event:
                 scenario_idle()
                 speed_zero_start_time = None
-                stuck_trigger_count = 0
+                stuck_trigger_count += 1
                 continue
 
             # ---- 场景3：开始竞赛 ----
@@ -243,6 +244,30 @@ def main_loop():
             # ---- 场景5 & 6：卡死检测 ----
             # 清洗时速文字（常见OCR误读）
             speed_str = text_e.replace("O", "0").replace("o", "0").replace(" ", "")
+
+            # 目的地不对
+            if stuck_trigger_count > 10:
+                start_auto_pilot()
+                auto_pilot_mode = 0
+                pydirectinput.keyDown('w')
+                left_or_right = stuck_trigger_count % 2
+                if left_or_right == 0:
+                    left_or_right = 'a'
+                else:
+                    left_or_right = 'd'
+                pydirectinput.keyDown(left_or_right)
+                for _ in range(10):
+                    text_c = get_text_from_region(sct, rects["c"])
+                    if "开始竞赛赛事" in text_c:
+                        pydirectinput.keyUp('w')
+                        pydirectinput.keyUp(left_or_right)
+                        start_auto_pilot()
+                        scenario_start_game()
+                        speed_zero_start_time = None
+                        stuck_trigger_count = 0
+                        continue
+                    time.sleep(0.5)
+                pydirectinput.press('w')
 
             if "继续" not in text_d and "选择" not in text_d and "设置路线以开始自动驾驶" not in text_a and not has_join_event and not auto_pilot_mode:
                 start_auto_pilot()
