@@ -52,7 +52,7 @@ def coords_to_mss_rect(coords):
 def get_text_from_region(sct, rect):
     img = np.array(sct.grab(rect))
     img_bgr = img[:, :, :3]
-    result = ocr.predict(img_bgr)
+    result = ocr.ocr(img_bgr)
     text_content = ""
     if result:
         # 新版返回格式可能是 list of dict，也可能是 list of list
