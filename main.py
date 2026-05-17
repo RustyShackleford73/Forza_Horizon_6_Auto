@@ -224,7 +224,7 @@ def main_loop():
                 continue
 
             # ---- 场景4：比赛结束（出现“继续”或“选择”） ----
-            if text_d in {"继续", "选择", "领取奖励"}:
+            if any(kw in text_d for kw in ["继续", "选择", "领取奖励"]):
                 scenario_game_finished()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
