@@ -179,7 +179,7 @@ def main_loop():
             text_c = get_text_from_region(sct, rects["c"])
             text_d = get_text_from_region(sct, rects["d"])
             text_e = get_text_from_region(sct, rects["e"])  # 时速
-            text_f = get_text_from_region(sct, rects["f"])
+            text_f = get_text_from_region(sct, rects["f"])  # 
             text_enter = get_text_from_region(sct, rects["enter"])
             text_money = get_text_from_region(sct, rects["money"])
             # text_map = get_text_from_region(sct, rects['map'])
@@ -220,6 +220,8 @@ def main_loop():
 
             # ---- 场景3：开始竞赛 ----
             if "开始竞赛赛事" in text_c:
+                if not auto_pilot_mode:
+                    start_auto_pilot()
                 scenario_start_game()
                 speed_zero_start_time = None
                 stuck_trigger_count = 0
